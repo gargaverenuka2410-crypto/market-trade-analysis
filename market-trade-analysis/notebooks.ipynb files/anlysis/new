@@ -1,0 +1,34 @@
+import sys
+
+import pandas as pd
+sys.path.append('../src') # Allows importing from the src folder
+from data_loader import load_trader_data, load_sentiment_data
+
+# Load datasets
+trades_df = load_trader_data('../data/trades.csv')
+sentiment_df = load_sentiment_data('../data/sentiment.csv')
+
+# Step 1 Logic: Time-Series Alignment
+trades_df['Date'] = trades_df['time'].dt.date
+merged_df = pd.merge(trades_df, sentiment_df, on='Date', how='left')
+
+from features import calculate_daily_performance, segment_trader_tiers
+
+# Calculate metrics
+daily_stats = calculate_daily_performance(merged_df)
+
+# Segment accounts into tiers
+final_df = segment_trader_tiers(daily_stats)
+
+# Preview the engineered features
+print(final_df[['account', 'Date', 'win_rate', 'avg_leverage', 'trader_tier']].head())
+
+
+import seaborn as sns
+import matplotlib.pyplot as plt         
+# Logic: Correlation between Sentiment Score and Leverage
+plt.figure(size=(10, 6))
+correlation_matrix = final_df[['avg_leverage', 'win_rate', 'total_pnl', 'Sentiment_Score']].corr()
+sns.heatmap(correlation_matrix, cannot=True, map='cool-warm')        
+plt.title('Trader Behavior vs. Market Sentiment Correlation')
+plt.show()
